@@ -5,6 +5,7 @@ obj/
 *.suo
 .vs/
 publish/
+publish.zip
 
 # Build output
 src/SreAgentDemo.Api/publish/
