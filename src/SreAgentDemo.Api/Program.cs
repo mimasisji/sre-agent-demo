@@ -100,7 +100,7 @@ app.MapPost("/orders", async (HttpContext ctx, OrderService svc, CancellationTok
     var order = await svc.CreateOrderAsync(
         body?.ProductId ?? 1,
         body?.Quantity ?? 1,
-        ctx.Session.Id,
+        ctx.TraceIdentifier,   // was ctx.Session.Id — session middleware not registered
         ct);
     return Results.Ok(order);
 });
