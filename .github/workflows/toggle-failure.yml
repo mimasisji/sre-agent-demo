@@ -1,0 +1,107 @@
+name: Toggle Failure Flags
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable_failure_mode:
+        description: 'Enable FAILURE MODE (30% HTTP 500 + 3-8s delay)'
+        type: boolean
+        required: true
+        default: false
+      enable_db_timeout:
+        description: 'Enable DB TIMEOUT (simulated timeouts + Polly retries)'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: sredemo-mim-app
+  AZURE_RESOURCE_GROUP: rg-sredemo-swe
+
+jobs:
+  toggle:
+    name: Toggle Feature Flags
+    runs-on: ubuntu-latest
+    environment: demo   # uses the "github-demo-env" federated credential
+
+    steps:
+      - name: Login to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update App Settings
+        run: |
+          FAILURE_MODE="${{ inputs.enable_failure_mode }}"
+          DB_TIMEOUT="${{ inputs.enable_db_timeout }}"
+
+          az webapp config appsettings set \
+            -g ${{ env.AZURE_RESOURCE_GROUP }} \
+            -n ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+              ENABLE_FAILURE_MODE=${FAILURE_MODE^^} \
+              ENABLE_DB_TIMEOUT=${DB_TIMEOUT^^}
+
+          echo "✅ Flags updated:"
+          echo "   ENABLE_FAILURE_MODE = ${FAILURE_MODE^^}"
+          echo "   ENABLE_DB_TIMEOUT   = ${DB_TIMEOUT^^}"
+
+      - name: Fetch ADMIN_TOKEN
+        id: get-token
+        run: |
+          TOKEN=$(az webapp config appsettings list \
+            -g ${{ env.AZURE_RESOURCE_GROUP }} \
+            -n ${{ env.AZURE_WEBAPP_NAME }} \
+            --query "[?name=='ADMIN_TOKEN'].value" -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "admin_token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Call admin endpoint to confirm state
+        run: |
+          FAILURE_MODE="${{ inputs.enable_failure_mode }}"
+          DB_TIMEOUT="${{ inputs.enable_db_timeout }}"
+          TOKEN="${{ steps.get-token.outputs.admin_token }}"
+          BASE="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+
+          if [ "$FAILURE_MODE" = "true" ]; then
+            curl -f -X POST "$BASE/admin/failure-mode" \
+              -H "Content-Type: application/json" \
+              -H "X-Admin-Token: $TOKEN" \
+              -d '{"enabled": true}' \
+              -w "\nHTTP %{http_code}\n"
+          else
+            curl -f -X POST "$BASE/admin/failure-mode" \
+              -H "Content-Type: application/json" \
+              -H "X-Admin-Token: $TOKEN" \
+              -d '{"enabled": false}' \
+              -w "\nHTTP %{http_code}\n"
+          fi
+
+          if [ "$DB_TIMEOUT" = "true" ]; then
+            curl -f -X POST "$BASE/admin/db-timeout" \
+              -H "Content-Type: application/json" \
+              -H "X-Admin-Token: $TOKEN" \
+              -d '{"enabled": true}' \
+              -w "\nHTTP %{http_code}\n"
+          else
+            curl -f -X POST "$BASE/admin/db-timeout" \
+              -H "Content-Type: application/json" \
+              -H "X-Admin-Token: $TOKEN" \
+              -d '{"enabled": false}' \
+              -w "\nHTTP %{http_code}\n"
+          fi
+
+      - name: Verify health
+        run: |
+          curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health \
+            -w "\nHTTP %{http_code} — flags toggled successfully\n"
+
+      - name: Logout
+        if: always()
+        run: az logout

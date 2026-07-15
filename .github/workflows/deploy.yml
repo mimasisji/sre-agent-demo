@@ -1,0 +1,94 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for OIDC authentication
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: sredemo-mim-app
+  AZURE_RESOURCE_GROUP: rg-sredemo-swe
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore src/SreAgentDemo.Api/SreAgentDemo.Api.csproj
+
+      - name: Build
+        run: dotnet build src/SreAgentDemo.Api/SreAgentDemo.Api.csproj --no-restore -c Release
+
+      - name: Test
+        run: dotnet test src/SreAgentDemo.Tests/SreAgentDemo.Tests.csproj --no-build -c Release --verbosity normal
+
+      - name: Publish
+        run: dotnet publish src/SreAgentDemo.Api/SreAgentDemo.Api.csproj -c Release -o ./publish --no-restore
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+          retention-days: 1
+
+  deploy:
+    name: Deploy
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://sredemo-mim-app.azurewebsites.net
+
+    steps:
+      - name: Login to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ./publish
+
+      - name: Set DEPLOYMENT_VERSION
+        run: |
+          az webapp config appsettings set \
+            -g ${{ env.AZURE_RESOURCE_GROUP }} \
+            -n ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings DEPLOYMENT_VERSION=${{ github.sha }}
+
+      - name: Smoke test (warm-up + verify)
+        run: |
+          echo "Warming up app (cold start on F1)..."
+          sleep 15
+          curl -f --retry 5 --retry-delay 5 \
+            https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health \
+            -o /dev/null -w "HTTP %{http_code} in %{time_total}s\n"
+
+      - name: Logout
+        if: always()
+        run: az logout
