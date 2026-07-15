@@ -103,7 +103,7 @@ if (-not $DryRun) {
     for ($i = 1; $i -le $MaxRetries; $i++) {
         try {
             $Response = Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 15
-            LogOk "  /health OK — status=$($Response.status) version=$($Response.version) failureMode=$($Response.failureMode)"
+            LogOk "  /health OK — status=$($Response.status) version=$($Response.version) failureMode=$($Response.flags.failureMode)"
             break
         } catch {
             if ($i -eq $MaxRetries) { throw "Health check failed after $MaxRetries attempts: $_" }
