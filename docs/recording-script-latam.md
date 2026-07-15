@@ -1,9 +1,15 @@
-# Guion de Grabación — Demo de Azure SRE Agent (Latam)
+# Guion de Grabación — Demo de Azure SRE Agent (Latam / PowerShell)
 
 **Duración objetivo:** 10–12 minutos de video final
 **Formato:** Grabación de pantalla + voz en off
-**Audiencia:** Tomadores de decisión de IT en Latam (CIO, VP de Ingeniería, Líder de SRE/Operaciones)
+**Audiencia:** Tomadores de decisión técnicos (SREs, DevOps, arquitectos, líderes de plataforma)
 **Idioma de narración:** Español neutro (Latam)
+
+> **¿Cuál guion usar?**
+> - **Este (PowerShell)** → audiencia técnica: SREs, DevOps, quienes valoran ver el `az` CLI y scripts en acción
+> - `recording-script-latam-dashboard.md` (Dashboard) → audiencia ejecutiva / negocio: más visual, cinemático, botones en pantalla
+>
+> Ambos guiones producen exactamente la misma investigación del agente y la misma narrativa. La única diferencia es **cómo se introduce y se resuelve la falla** — con PowerShell aquí, con botones en el navegador allá.
 
 > **Sobre los prompts al agente:**
 > El agente Azure SRE Agent puede responder en español si le hablas en español. Sin embargo, sus respuestas están indexadas con archivos de conocimiento en inglés (los `.md` que subiste), por lo que las respuestas en inglés tienden a ser **más precisas y con mejores citas al código**.
