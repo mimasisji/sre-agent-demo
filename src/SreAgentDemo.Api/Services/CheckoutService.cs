@@ -41,7 +41,7 @@ public class CheckoutService
         // Step 2: Create order
         var order = await _orders.CreateOrderAsync(productId, quantity, sessionId, ct);
 
-        _checkoutDuration.Record(sw.ElapsedMilliseconds, new("status", "success"));
+        _checkoutDuration.Record(sw.ElapsedMilliseconds, new TagList { { "status", "success" } });
         activity?.SetStatus(ActivityStatusCode.Ok);
 
         return new

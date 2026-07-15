@@ -24,7 +24,7 @@ public class OrderService
         var sw = Stopwatch.StartNew();
         // Simulate DB write latency
         await Task.Delay(_rng.Next(70, 100), ct);
-        _dbDuration.Record(sw.ElapsedMilliseconds, new("operation", "CreateOrder"));
+        _dbDuration.Record(sw.ElapsedMilliseconds, new TagList { { "operation", "CreateOrder" } });
 
         var orderId = Interlocked.Increment(ref _orderSequence);
         activity?.SetTag("order.id", orderId);

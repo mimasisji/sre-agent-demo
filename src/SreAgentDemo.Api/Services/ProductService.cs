@@ -29,7 +29,7 @@ public class ProductService
         var sw = Stopwatch.StartNew();
         // Simulate DB read latency
         await Task.Delay(_rng.Next(40, 70), ct);
-        _dbDuration.Record(sw.ElapsedMilliseconds, new("operation", "GetProducts"));
+        _dbDuration.Record(sw.ElapsedMilliseconds, new TagList { { "operation", "GetProducts" } });
 
         activity?.SetTag("result.count", _products.Count);
         return _products;

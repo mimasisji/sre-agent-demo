@@ -15,7 +15,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithProperty("deployment.version", builder.Configuration["DEPLOYMENT_VERSION"] ?? "local")
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
     .WriteTo.ApplicationInsights(
-        builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"] ?? TelemetryConverter.Traces,
+        builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"] ?? string.Empty,
         TelemetryConverter.Traces)
     .CreateLogger();
 
@@ -36,8 +36,6 @@ builder.Services.AddSingleton<FeatureFlagService>();
 builder.Services.AddSingleton<ProductService>();
 builder.Services.AddSingleton<OrderService>();
 builder.Services.AddSingleton<CheckoutService>();
-
-builder.Services.AddStaticFiles();
 
 var app = builder.Build();
 
