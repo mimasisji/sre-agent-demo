@@ -40,6 +40,7 @@ builder.Services.AddSingleton<CheckoutService>();
 var app = builder.Build();
 
 // ─── Middleware pipeline ──────────────────────────────────────────────────────
+app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseMiddleware<AdminTokenMiddleware>();
 app.UseMiddleware<FailureModeMiddleware>();
