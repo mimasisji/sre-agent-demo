@@ -1,5 +1,5 @@
 @description('Azure SRE Agent Demo — root Bicep template')
-param location string = 'eastus2'
+param location string = 'swedencentral'
 param prefix string = 'sre-demo'
 param alertEmail string
 

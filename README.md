@@ -33,49 +33,42 @@ Browser ──► App Service (ASP.NET Core .NET 8)
 ### Prerequisites
 - Azure CLI (`az`) logged in
 - .NET 8 SDK
-- Contributor access to your Azure subscription
+- Contributor access to `rg-sredemo-swe`
 
-### 1 — Pre-deployment Setup (OIDC + Secrets)
+### 1 — Deploy Infrastructure (first time only)
 
-> Do this **once** before first deploy. See [Pre-deployment Setup](#pre-deployment-setup) below.
-
-### 2 — Deploy Infrastructure
-
-```bash
+```powershell
 az group create --name rg-sredemo-swe --location swedencentral
 
-az deployment group create \
-  --resource-group rg-sredemo-swe \
-  --template-file infra/main.bicep \
+az deployment group create `
+  --resource-group rg-sredemo-swe `
+  --template-file infra/main.bicep `
   --parameters @infra/main.parameters.json
 ```
 
-### 3 — Retrieve ADMIN_TOKEN
+### 2 — Retrieve ADMIN_TOKEN
 
-```bash
-az webapp config appsettings list \
-  -g rg-sredemo-swe -n sredemo-mim-app \
+```powershell
+az webapp config appsettings list `
+  -g rg-sredemo-swe -n sredemo-mim-app `
   --query "[?name=='ADMIN_TOKEN'].value" -o tsv
 ```
 
-### 4 — Build & Deploy App Locally (optional — CI/CD does this automatically)
+### 3 — Build & Deploy
 
-```bash
-cd src/SreAgentDemo.Api
-dotnet publish -c Release -o ./publish
-az webapp deploy --resource-group rg-sredemo-swe --name sredemo-mim-app \
-  --src-path ./publish --type zip
+```powershell
+.\scripts\deploy.ps1
 ```
 
-### 5 — Verify
+### 4 — Verify
 
-```bash
-curl https://sredemo-mim-app.azurewebsites.net/health
+```powershell
+Invoke-RestMethod https://sredemo-mim-app.azurewebsites.net/health
 ```
 
-### 6 — Clean Up
+### 5 — Clean Up
 
-```bash
+```powershell
 az group delete -n rg-sredemo-swe --yes
 ```
 
@@ -83,56 +76,59 @@ az group delete -n rg-sredemo-swe --yes
 
 ## Pre-deployment Setup
 
-### OIDC Federated Credentials for GitHub Actions (R1)
+### OIDC Federated Credentials (Already Configured)
 
-No long-lived secrets. GitHub authenticates to Azure via OpenID Connect.
+OIDC authentication between GitHub Actions and Azure is fully configured using a **User-Assigned Managed Identity** (no App Registration required — avoids enterprise tenant restrictions).
 
-```bash
-# 1. Create App Registration
-APP_ID=$(az ad app create --display-name "sre-agent-demo-github" --query appId -o tsv)
+| Item | Value |
+|---|---|
+| Managed Identity | `sredemo-github-oidc` in `rg-sredemo-swe` |
+| Federated cred `github-main` | `repo:mimasis_microsoft/sre-agent-demo:ref:refs/heads/main` |
+| Federated cred `github-demo-env` | `repo:mimasis_microsoft/sre-agent-demo:environment:demo` |
+| Role assignment | Contributor on `rg-sredemo-swe` |
+| GitHub Secrets | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` ✅ |
 
-# 2. Create service principal
-az ad sp create --id $APP_ID
+> **GitHub Actions are deferred** — hosted runners are disabled at the enterprise level. See `.github/workflows-disabled/README.md`.  
+> **Use `scripts/deploy.ps1` for local deploys until runners are enabled.**
 
-# 3. Get object ID
-OBJ_ID=$(az ad app show --id $APP_ID --query id -o tsv)
+### Recreating the Managed Identity (if needed)
 
-# 4. Assign Contributor to resource group
-az role assignment create \
-  --assignee $APP_ID \
-  --role Contributor \
-  --scope /subscriptions/<sub-id>/resourceGroups/rg-sredemo-swe
+```powershell
+# Create User-Assigned Managed Identity
+az identity create -g rg-sredemo-swe -n sredemo-github-oidc
 
-# 5. Federated credential — main branch (deploy.yml)
-az ad app federated-credential create --id $OBJ_ID --parameters '{
-  "name": "github-main",
-  "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:<org>/<repo>:ref:refs/heads/main",
-  "audiences": ["api://AzureADTokenExchange"]
-}'
+$MiClientId  = az identity show -g rg-sredemo-swe -n sredemo-github-oidc --query clientId -o tsv
+$MiPrincipal = az identity show -g rg-sredemo-swe -n sredemo-github-oidc --query principalId -o tsv
+$SubId       = az account show --query id -o tsv
 
-# 6. Federated credential — workflow_dispatch for toggle-failure.yml
-az ad app federated-credential create --id $OBJ_ID --parameters '{
-  "name": "github-demo-env",
-  "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:<org>/<repo>:environment:demo",
-  "audiences": ["api://AzureADTokenExchange"]
-}'
+# Assign Contributor on the resource group
+az role assignment create --assignee $MiPrincipal --role Contributor `
+  --scope "/subscriptions/$SubId/resourceGroups/rg-sredemo-swe"
+
+# Federated credential — main branch
+az identity federated-credential create `
+  --identity-name sredemo-github-oidc -g rg-sredemo-swe `
+  --name github-main `
+  --issuer https://token.actions.githubusercontent.com `
+  --subject "repo:mimasis_microsoft/sre-agent-demo:ref:refs/heads/main" `
+  --audiences api://AzureADTokenExchange
+
+# Federated credential — demo environment (toggle-failure.yml)
+az identity federated-credential create `
+  --identity-name sredemo-github-oidc -g rg-sredemo-swe `
+  --name github-demo-env `
+  --issuer https://token.actions.githubusercontent.com `
+  --subject "repo:mimasis_microsoft/sre-agent-demo:environment:demo" `
+  --audiences api://AzureADTokenExchange
 ```
 
-### GitHub Repository Secrets
+### GitHub Secrets
 
-Add these **3 secrets** in your repo → Settings → Secrets → Actions:
-
-| Secret | Value |
-|---|---|
-| `AZURE_CLIENT_ID` | `$APP_ID` from above |
-| `AZURE_TENANT_ID` | `$(az account show --query tenantId -o tsv)` |
-| `AZURE_SUBSCRIPTION_ID` | `$(az account show --query id -o tsv)` |
-
-### GitHub Environment
-
-Create an environment named `demo` in Settings → Environments (required for the `toggle-failure.yml` federated credential).
+```powershell
+gh secret set AZURE_CLIENT_ID      --body $MiClientId
+gh secret set AZURE_TENANT_ID      --body (az account show --query tenantId -o tsv)
+gh secret set AZURE_SUBSCRIPTION_ID --body $SubId
+```
 
 ---
 
@@ -143,19 +139,27 @@ Create an environment named `demo` in Settings → Environments (required for th
 | `ENABLE_FAILURE_MODE=true` | 30% HTTP 500, 3–8s delay, structured exceptions logged |
 | `ENABLE_DB_TIMEOUT=true` | Simulated DB timeouts with Polly retries (observable in App Insights) |
 
-**Toggle via dashboard** (browser) or **GitHub Actions** (`toggle-failure.yml` workflow).
+**Toggle via dashboard** (browser) or **PowerShell script:**
 
-**Toggle via CLI:**
-```bash
-az webapp config appsettings set \
-  -g rg-sredemo-swe -n sredemo-mim-app \
-  --settings ENABLE_FAILURE_MODE=true
+```powershell
+# Enable failure mode
+.\scripts\toggle-failure.ps1 -FailureMode $true
+
+# Disable failure mode
+.\scripts\toggle-failure.ps1 -FailureMode $false
+
+# Enable/disable DB timeout
+.\scripts\toggle-failure.ps1 -DbTimeout $true
+.\scripts\toggle-failure.ps1 -DbTimeout $false
 ```
 
-**Rollback (emergency):**
-```bash
-az webapp config appsettings set \
-  -g rg-sredemo-swe -n sredemo-mim-app \
+**Rollback (emergency — Azure Portal fallback):**  
+Azure Portal → App Service `sredemo-mim-app` → Configuration → set `ENABLE_FAILURE_MODE=false` and `ENABLE_DB_TIMEOUT=false`.
+
+**Rollback via CLI:**
+```powershell
+az webapp config appsettings set `
+  -g rg-sredemo-swe -n sredemo-mim-app `
   --settings ENABLE_FAILURE_MODE=false ENABLE_DB_TIMEOUT=false
 ```
 
@@ -212,8 +216,14 @@ Connect the following in Azure SRE Agent:
 │   ├── demo-backup-screenshots/   # Plan B screenshots
 │   └── historical-incidents/      # SRE Agent knowledge files
 ├── scripts/
-│   └── seed-telemetry.sh          # Rehearsal automation
-└── .github/workflows/
-    ├── deploy.yml                 # CI/CD
-    └── toggle-failure.yml         # Manual failure toggle
+│   ├── deploy.ps1                 # Build + zip deploy to Azure
+│   ├── toggle-failure.ps1         # Toggle FAILURE_MODE / DB_TIMEOUT flags
+│   ├── seed-telemetry.ps1         # Pre-demo telemetry seeding (PowerShell)
+│   └── seed-telemetry.sh          # Legacy bash version (Linux/macOS)
+└── .github/
+    ├── workflows-disabled/        # CI/CD (deferred — enterprise runners blocked)
+    │   ├── deploy.yml
+    │   ├── toggle-failure.yml
+    │   └── README.md
+    └── workflows/                 # Empty — workflows moved to workflows-disabled
 ```

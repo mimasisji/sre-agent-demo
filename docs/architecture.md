@@ -14,6 +14,11 @@ All "database" operations are **simulated in-memory** — no external dependenci
 
 ```mermaid
 graph TB
+    subgraph LocalDev[Local Dev Machine]
+        DEV[Developer<br/>PowerShell]
+        SCRIPTS[scripts/<br/>deploy.ps1 / toggle-failure.ps1]
+    end
+
     subgraph Browser
         UI[Health Dashboard<br/>wwwroot/index.html]
     end
@@ -39,6 +44,9 @@ graph TB
         INC[Historical Incidents]
     end
 
+    DEV --> SCRIPTS
+    SCRIPTS -->|az webapp deploy| API
+    SCRIPTS -->|POST /admin/*| API
     UI -->|HTTP| API
     API --> MW1 --> MW2 --> MW3 --> SVC
     API -->|OpenTelemetry OTLP| AI

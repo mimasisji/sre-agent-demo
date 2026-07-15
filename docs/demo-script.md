@@ -16,12 +16,13 @@ This is a scripted 10-minute executive demo showing how Azure SRE Agent reduces 
 
 Azure SRE Agent's pattern matching requires **real historical telemetry** in Application Insights, not just Markdown knowledge files. Run this at least 3 days before the executive demo:
 
-```bash
-chmod +x scripts/seed-telemetry.sh
-./scripts/seed-telemetry.sh \
-  --resource-group rg-sredemo-swe \
-  --app-name sredemo-mim-app \
-  --cycles 3
+```powershell
+.\scripts\seed-telemetry.ps1 -Cycles 3
+```
+
+For a quick smoke test (completes in ~21 minutes):
+```powershell
+.\scripts\seed-telemetry.ps1 -Cycles 1 -Quick
 ```
 
 **What the script does per cycle:**
@@ -66,9 +67,9 @@ Run through this checklist before every executive demo:
 - [ ] Azure Monitor portal open — Alerts tab visible
 - [ ] Feature flags are **OFF** (`ENABLE_FAILURE_MODE=false`)
 - [ ] `ADMIN_TOKEN` is in clipboard:
-  ```bash
-  az webapp config appsettings list \
-    -g rg-sredemo-swe -n sredemo-mim-app \
+  ```powershell
+  az webapp config appsettings list `
+    -g rg-sredemo-swe -n sredemo-mim-app `
     --query "[?name=='ADMIN_TOKEN'].value" -o tsv
   ```
 - [ ] `docs/demo-backup-screenshots/` open in a **hidden browser tab** (Plan B)
@@ -174,7 +175,11 @@ Recommend immediate mitigation and long-term remediation.
 
 ### ACT 5 — Remediate (8:00–9:00)
 
-**Action:** Click **"Disable Failure Mode"** on the dashboard. OR run the toggle workflow in GitHub Actions.
+**Action:** Click **"Disable Failure Mode"** on the dashboard. OR run the toggle script:
+
+```powershell
+.\scripts\toggle-failure.ps1 -FailureMode $false
+```
 
 **Show:** Dashboard flips back to green. Latency shows "fast".
 
@@ -224,6 +229,9 @@ Generate a complete post-incident report.
 3. Narrate from the pre-captured response as if it were live
 4. Continue to the next prompt
 
+**If the admin token toggle fails during the demo:**  
+Azure Portal → App Service `sredemo-mim-app` → Configuration → Application settings → set `ENABLE_FAILURE_MODE=false` → Save.
+
 **Key principle:** The audience does not need to see the agent type — they need to understand the value. Screenshots of great responses are equally compelling.
 
 ---
@@ -240,12 +248,13 @@ Generate a complete post-incident report.
 ## Rehearsal Checklist — Run 3 Days Before
 
 - [ ] Deploy full solution and verify health
-- [ ] Run `./scripts/seed-telemetry.sh \
-    --resource-group rg-sredemo-swe \
-    --app-name sredemo-mim-app \
-    --cycles 3`
+- [ ] Run `.\.scripts\seed-telemetry.ps1 -Cycles 3`
 - [ ] Verify App Insights shows ≥ 3 error spikes
 - [ ] Connect SRE Agent to all resources (App Insights, LAW, GitHub, Knowledge Files)
 - [ ] Run all 6 prompts — capture screenshots to `docs/demo-backup-screenshots/`
 - [ ] Time yourself — confirm you complete in under 10 minutes
-- [ ] Reset all flags: `ENABLE_FAILURE_MODE=false`, `ENABLE_DB_TIMEOUT=false`
+- [ ] Reset all flags:
+  ```powershell
+  .\scripts\toggle-failure.ps1 -FailureMode $false
+  .\scripts\toggle-failure.ps1 -DbTimeout $false
+  ```
