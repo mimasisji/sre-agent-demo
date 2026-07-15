@@ -56,7 +56,7 @@ $Token = az webapp config appsettings list `
 if ([string]::IsNullOrEmpty($Token)) {
     throw "Could not retrieve ADMIN_TOKEN. Make sure you are logged in to Azure CLI and have access to $ResourceGroup."
 }
-LogOk "  Token retrieved (${Token.Substring(0,8)}...)"
+LogOk "  Token retrieved ($($Token.Substring(0,8))...)"
 
 # ── Determine endpoint and value ──────────────────────────────────────────────
 if ($PSCmdlet.ParameterSetName -eq "Failure") {
@@ -69,7 +69,7 @@ if ($PSCmdlet.ParameterSetName -eq "Failure") {
     $Value       = $DbTimeout
 }
 
-$ValueStr = if ($Value) { "TRUE" } else { "FALSE" }
+$ValueStr = if ($Value) { "true" } else { "false" }
 Log "Setting $SettingName = $ValueStr..."
 
 # ── POST to admin endpoint ────────────────────────────────────────────────────
