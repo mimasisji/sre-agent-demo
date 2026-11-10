@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <title>SRE Agent Demo - Presentador</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 20px; background: var(--cp-bg); color: var(--cp-text); font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
+    main { max-width: 1080px; margin: auto; }
+    h1 { margin: 8px 0; font-size: 1.8rem; }
+    h2 { margin: 0 0 16px; font-size: 1.2rem; }
+    h3 { font-size: 1rem; }
+    p { line-height: 1.5; }
+    a { color: var(--cp-link); }
+    .muted, small { color: var(--cp-text-muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .card { padding: 24px; margin: 16px 0; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); }
+    .grid .card { margin: 0; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    button, input, textarea { font: inherit; border: 1px solid var(--cp-border-strong); border-radius: 0.625rem; padding: 12px; }
+    button { cursor: pointer; background: var(--cp-surface-soft); color: var(--cp-text); }
+    button.primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); }
+    button.primary:hover:not(:disabled) { background: var(--cp-accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--cp-accent); outline-offset: 3px; }
+    input, textarea { background: var(--cp-bg-elevated); color: var(--cp-text); }
+    input { min-width: 200px; flex: 1; }
+    textarea { width: 100%; min-height: 180px; resize: vertical; font: 0.9rem/1.5 Consolas, "Courier New", Courier, monospace; }
+    .status { padding: 12px 16px; border-left: 4px solid var(--cp-border-strong); background: var(--cp-surface-soft); white-space: pre-line; }
+    .success { border-color: var(--cp-success); }
+    .danger { border-color: var(--cp-danger); }
+    .warning { border-color: var(--cp-warning); }
+    .result { white-space: pre-line; line-height: 1.6; }
+    .speaker-note { margin: 16px 0; padding: 16px; border-left: 4px solid var(--cp-accent); border-radius: 0.625rem; background: var(--cp-accent-soft); }
+    .speaker-note h3 { margin: 0 0 12px; }
+    .speaker-note blockquote { margin: 12px 0; line-height: 1.6; }
+    .speaker-note p { margin: 8px 0; }
+    details { margin: 16px 0; }
+    summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+    .prompt-action { margin-top: 8px; }
+    code { font-family: Consolas, "Courier New", Courier, monospace; }
+    [hidden] { display: none !important; }
+    @media (max-width: 400px) { .grid { grid-template-columns: 1fr; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <small>CONSOLA DEL PRESENTADOR / VERSION 2026-11-10</small>
+      <h1>De la falla a la evidencia</h1>
+      <p class="muted">Demo controlada de Azure SRE Agent. Sin terminal, sin consultas manuales, con mitigacion humana.</p>
+      <nav class="row">
+        <a href="https://sre.azure.com/agents/subscriptions/8e6e91bf-61fa-4262-b049-3f28f5aee367/resourceGroups/rg-sredemo-swe/providers/Microsoft.App/agents/sredemo-sre-agent" target="_blank" rel="noopener noreferrer">Abrir SRE Agent</a>
+        <a href="/">Dashboard original</a>
+      </nav>
+    </header>
+    <section class="card">
+      <h2>Antes de compartir pantalla</h2>
+      <p>Inicia sesion en SRE Agent con el tenant de la demo y abre un chat nuevo. Guarda el token aqui antes de presentar. No lo compartas con el agente.</p>
+      <p class="muted">Si necesitas obtenerlo, abre el <a href="https://portal.azure.com/#resource/subscriptions/8e6e91bf-61fa-4262-b049-3f28f5aee367/resourceGroups/rg-sredemo-swe/providers/Microsoft.Web/sites/sredemo-mim-app/overview" target="_blank" rel="noopener noreferrer">App Service en Azure Portal</a>, ve a Settings &gt; Environment variables &gt; App settings y copia ADMIN_TOKEN sin compartir esa pantalla. No cambies su valor.</p>
+      <label for="token">ADMIN_TOKEN (solo en memoria; se pierde al recargar)</label>
+      <form id="token-form" class="row">
+        <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Pegar token" required />
+        <button id="save-token" type="submit">Guardar token</button>
+      </form>
+      <p id="token-status" class="muted" role="status">Token no cargado. Esta pagina no lo guarda en el navegador.</p>
+      <div id="health" class="status" role="status">Comprobando /health...</div>
+      <p class="muted">/health no prueba las compras. Los botones de abajo generan 20 solicitudes a cada endpoint: productos, pedidos y checkout.</p>
+      <p class="muted"><strong>Nota para ti:</strong> prepara el token antes de compartir. Mant&eacute;n esta consola fuera de la pantalla compartida; muestra al cliente el dashboard y el chat del agente. Las notas siguientes son tu apoyo, no mensajes para pegar en el chat.</p>
+    </section>
+    <section class="card">
+      <h2>Apertura: qu&eacute; vamos a demostrar</h2>
+      <div class="speaker-note">
+        <p><strong>Muestra:</strong> el dashboard con ambas flags OFF; despu&eacute;s, el chat nuevo del agente.</p>
+        <blockquote>&ldquo;Vamos a recorrer un incidente de principio a fin: detectar el problema, entender su causa, aplicar una mitigaci&oacute;n y comprobar el resultado. Usaremos una aplicaci&oacute;n de comercio electr&oacute;nico en Azure y tr&aacute;fico de prueba. La falla es intencional: no estamos mostrando una afectaci&oacute;n a clientes reales.&rdquo;</blockquote>
+        <blockquote>&ldquo;Azure SRE Agent tiene acceso a la telemetr&iacute;a, al repositorio de c&oacute;digo y a la documentaci&oacute;n operativa. Veremos c&oacute;mo utiliza esas fuentes para sustentar sus conclusiones, manteniendo la decisi&oacute;n de intervenir en manos del operador.&rdquo;</blockquote>
+        <p><strong>Avanza cuando:</strong> hayas explicado el escenario y comprobado ambas flags OFF. Orden del recorrido: <strong>bot&oacute;n 1 &rarr; A &rarr; B &rarr; bot&oacute;n 2 &rarr; C &rarr; D</strong>.</p>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Recorrido en vivo</h2>
+      <div class="row">
+        <button id="incident" class="primary" disabled>1. Activar falla y generar 60 solicitudes</button>
+        <button id="recover" disabled>2. Recuperar y probar 60 solicitudes</button>
+        <button id="stop" disabled>Apagar ambas fallas sin prueba</button>
+      </div>
+      <p class="muted">La falla es simulada, puede disparar alertas y NO se apaga al cerrar esta pagina. No actives DB TIMEOUT en este recorrido. Recupera siempre al terminar.</p>
+      <div id="activity" class="status" role="status" aria-live="polite">Carga el token para comenzar.</div>
+      <p id="notice" class="status warning" role="alert" hidden></p>
+    </section>
+    <section class="grid" aria-label="Resultados medidos por este navegador">
+      <article class="card">
+        <h2>Incidente</h2>
+        <div id="incident-result" class="result">Sin prueba.</div>
+        <div class="speaker-note">
+          <h3>Al usar el bot&oacute;n 1</h3>
+          <p><strong>Muestra:</strong> el cambio de estado en el dashboard, sin exponer los controles de tu consola.</p>
+          <blockquote>&ldquo;Ahora activamos una falla controlada y generamos 60 solicitudes de negocio, repartidas entre productos, pedidos y checkout. Esto nos dar&aacute; evidencia real de errores y tiempos de respuesta. El indicador de salud, por s&iacute; solo, no verifica que una compra funcione.&rdquo;</blockquote>
+          <p><strong>Mientras termina:</strong> explica el escenario; no vuelvas a pulsar el bot&oacute;n ni prometas un porcentaje exacto. El 30 % es una probabilidad programada, no un resultado garantizado.</p>
+          <p><strong>Avanza cuando:</strong> aparezca &ldquo;Incidente generado&rdquo; y se habiliten A y B. Los conteos de este panel son del navegador; el agente los contrastar&aacute; con la telemetr&iacute;a.</p>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Recuperacion</h2>
+        <div id="recovery-result" class="result">Sin prueba.</div>
+        <div class="speaker-note">
+          <h3>Al usar el bot&oacute;n 2, despu&eacute;s de B</h3>
+          <p><strong>Muestra:</strong> la recomendaci&oacute;n del agente y luego el dashboard al apagar las fallas.</p>
+          <blockquote>&ldquo;Una vez revisada la causa y la mitigaci&oacute;n propuesta, el operador desactiva la falla. En este recorrido el agente investiga y recomienda; no ejecuta cambios. Ahora repetimos 60 solicitudes para comprobar el resultado, en lugar de conformarnos con un indicador verde.&rdquo;</blockquote>
+          <p><strong>Avanza cuando:</strong> ambas flags est&eacute;n OFF y la consola confirme 60/60 HTTP 200. Entonces usa C. Si hay errores, no anuncies recuperaci&oacute;n: revisa la prueba antes de continuar.</p>
+        </div>
+      </article>
+    </section>
+    <section class="card">
+      <h2>Mensajes para el mismo chat del SRE Agent</h2>
+      <p>Los intervalos UTC y el identificador de cada prueba se completan automaticamente. Espera 2-5 minutos para la ingesta si el agente aun no encuentra datos. Nunca concedas permisos adicionales solo para continuar la demo.</p>
+      <details open>
+        <summary>A. Investigar (despues del boton 1)</summary>
+        <div class="speaker-note">
+          <p><strong>Muestra:</strong> el mensaje A y la investigaci&oacute;n en el chat. Copia solo el mensaje del cuadro inferior.</p>
+          <blockquote>&ldquo;La primera pregunta es qu&eacute; est&aacute; fallando y cu&aacute;l es el alcance observado. Pedimos al agente que consulte la telemetr&iacute;a de esta prueba y detalle los endpoints afectados, la tasa de errores y la latencia. El intervalo y la muestra ya est&aacute;n delimitados; no necesitamos escribir consultas manualmente.&rdquo;</blockquote>
+          <p><strong>Al recibir la respuesta:</strong> se&ntilde;ala el total de solicitudes, los errores y la excepci&oacute;n correlacionada. Lee las cifras de esta ejecuci&oacute;n, no las del ensayo. No identifiques clientes si los datos no lo permiten.</p>
+          <p><strong>Avanza a B cuando:</strong> el agente termine y presente evidencia, no solo una hip&oacute;tesis. Mientras investiga puedes decir: &ldquo;Est&aacute; contrastando las solicitudes con sus registros de error; esperaremos esa evidencia antes de concluir.&rdquo;</p>
+        </div>
+        <textarea id="prompt-investigate" aria-label="Mensaje de investigacion" readonly></textarea>
+        <button data-copy="prompt-investigate" class="prompt-action" disabled>Copiar investigacion</button>
+      </details>
+      <details>
+        <summary>B. Correlacionar causa con codigo y documentacion</summary>
+        <div class="speaker-note">
+          <p><strong>Muestra:</strong> la respuesta del agente y sus referencias al c&oacute;digo y a la documentaci&oacute;n.</p>
+          <blockquote>&ldquo;Detectar errores no equivale a explicar su causa. Ahora pedimos que contraste los hallazgos con el c&oacute;digo y los procedimientos operativos. Queremos saber qu&eacute; comportamiento produce la falla y qu&eacute; evidencia conecta ese mecanismo con lo que acabamos de observar.&rdquo;</blockquote>
+          <p><strong>Al recibir la respuesta:</strong> muestra la traza de activaci&oacute;n, la referencia al middleware y la mitigaci&oacute;n propuesta, si el agente las confirma. Explica: &ldquo;Distinguimos lo demostrado de lo supuesto; no atribuimos el incidente a un despliegue solo porque hubo errores.&rdquo;</p>
+          <p><strong>Avanza al bot&oacute;n 2 cuando:</strong> hayas revisado la causa y la recomendaci&oacute;n de desactivar la falla. Si falta acceso al c&oacute;digo, declara esa limitaci&oacute;n; no presentes la correlaci&oacute;n como completada.</p>
+        </div>
+        <textarea id="prompt-cause" aria-label="Mensaje de causa raiz" readonly></textarea>
+        <button data-copy="prompt-cause" class="prompt-action" disabled>Copiar causa raiz</button>
+      </details>
+      <details>
+        <summary>C. Verificar recuperacion (despues del boton 2)</summary>
+        <div class="speaker-note">
+          <p><strong>Muestra:</strong> la comparaci&oacute;n antes/despu&eacute;s en la respuesta del agente.</p>
+          <blockquote>&ldquo;El navegador ya complet&oacute; la prueba posterior. Ahora pedimos una verificaci&oacute;n independiente en la telemetr&iacute;a: que confirme las solicitudes, compare errores y latencia, y encuentre el registro de desactivaci&oacute;n. Aplicar una mitigaci&oacute;n y demostrar que funcion&oacute; son dos pasos distintos.&rdquo;</blockquote>
+          <p><strong>Al recibir la respuesta:</strong> lee los conteos y la comparaci&oacute;n de latencia que realmente confirme. Si encuentra 60/60 respuestas correctas, di: &ldquo;La recuperaci&oacute;n est&aacute; verificada para esta muestra. No equivale todav&iacute;a a observar la estabilidad durante un per&iacute;odo prolongado.&rdquo;</p>
+          <p><strong>Avanza a D cuando:</strong> el agente confirme la muestra completa. Si faltan datos por ingesta, espera y pide revisar el mismo intervalo, sin anunciar &eacute;xito antes de tiempo.</p>
+        </div>
+        <textarea id="prompt-recovery" aria-label="Mensaje de recuperacion" readonly></textarea>
+        <button data-copy="prompt-recovery" class="prompt-action" disabled>Copiar verificacion</button>
+      </details>
+      <details>
+        <summary>D. Informe post-incidente</summary>
+        <div class="speaker-note">
+          <p><strong>Muestra:</strong> el resumen ejecutivo, la l&iacute;nea de tiempo, la causa y las acciones propuestas en el informe.</p>
+          <blockquote>&ldquo;El &uacute;ltimo paso es convertir la investigaci&oacute;n en un registro &uacute;til para el equipo: qu&eacute; ocurri&oacute;, qu&eacute; impacto observamos, qu&eacute; se hizo y c&oacute;mo se verific&oacute;. Pedimos al agente que separe las acciones realizadas de las recomendaciones que siguen pendientes.&rdquo;</blockquote>
+          <p><strong>Al recibir la respuesta:</strong> recorre esas secciones sin leer todo el informe. Destaca las fuentes y los l&iacute;mites de la evidencia. No anuncies MTTR, ahorro, severidad ni impacto en clientes que no est&eacute;n justificados.</p>
+          <p><strong>Avanza al cierre cuando:</strong> el informe refleje lo ocurrido y ambas fallas sigan OFF. No vuelvas a activar la falla para cerrar la presentaci&oacute;n.</p>
+        </div>
+        <textarea id="prompt-report" aria-label="Mensaje de informe" readonly></textarea>
+        <button data-copy="prompt-report" class="prompt-action" disabled>Copiar informe</button>
+      </details>
+      <p id="copy-status" role="status"></p>
+    </section>
+    <section class="card">
+      <h2>Cierre: el valor demostrado</h2>
+      <div class="speaker-note">
+        <p><strong>Muestra:</strong> el informe final; termina con el dashboard en estado saludable.</p>
+        <blockquote>&ldquo;Recorrimos una falla controlada desde la detecci&oacute;n hasta su documentaci&oacute;n. El agente correlacion&oacute; telemetr&iacute;a, c&oacute;digo y conocimiento operativo; el operador aplic&oacute; la mitigaci&oacute;n, y despu&eacute;s comprobamos su efecto con evidencia.&rdquo;</blockquote>
+        <blockquote>&ldquo;El valor demostrado es reunir el contexto de la investigaci&oacute;n en una misma conversaci&oacute;n, con conclusiones trazables y l&iacute;mites expl&iacute;citos. Para su entorno, el siguiente paso ser&iacute;a evaluar un escenario acotado, acordar las fuentes y los permisos necesarios, y definir c&oacute;mo medir el resultado.&rdquo;</blockquote>
+        <p><strong>Antes de terminar:</strong> comprueba ambas flags OFF y conserva este chat como evidencia. La consola no apaga la falla por cerrarla.</p>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Guion corto / plan B</h2>
+      <ol>
+        <li><strong>Apertura:</strong> "El agente tiene acceso a telemetria, codigo y documentacion. Hoy investigaremos una falla controlada, no un incidente de clientes reales."</li>
+        <li><strong>Incidente:</strong> pulsa el boton 1. "Generamos compras de prueba; el indicador de salud por si solo no detecta esta falla."</li>
+        <li><strong>Investigacion:</strong> pega A y luego B. Muestra los endpoints, las excepciones y las citas de codigo. No anuncies cifras hasta verlas.</li>
+        <li><strong>Mitigacion:</strong> pulsa el boton 2. "Un operador aplica la mitigacion; el agente no ha realizado cambios."</li>
+        <li><strong>Validacion y cierre:</strong> pega C y D. "Comprobamos la recuperacion con otra muestra de 60 solicitudes, no con observacion sostenida."</li>
+      </ol>
+      <p>Si aparece una solicitud de permisos, cancelala. Usa el workspace indicado en el mensaje A. Si no hay datos, espera la ingesta: no inventes resultados ni repitas indefinidamente el trafico.</p>
+      <p>Si el agente o GitHub no responden, muestra el chat del ensayo del 10 de noviembre y aclara que es evidencia del ensayo, no una investigacion nueva. Mantenlo abierto en otra pestana antes de empezar.</p>
+      <div class="speaker-note">
+        <h3>Si hay una espera o un bloqueo</h3>
+        <blockquote>&ldquo;La telemetr&iacute;a puede tardar en estar disponible. Mantendremos la misma muestra y verificaremos los datos antes de sacar conclusiones.&rdquo;</blockquote>
+        <p><strong>Si no puedes continuar:</strong> apaga primero las fallas y explica: &ldquo;Esta parte de la verificaci&oacute;n en vivo queda pendiente. Para mostrar el recorrido completo, usar&eacute; el resultado del ensayo anterior, identificado como tal.&rdquo; No ampl&iacute;es permisos ni presentes el respaldo como un resultado nuevo.</p>
+      </div>
+      <details>
+        <summary>Respaldo: resultados del ensayo del 10 de noviembre (NO son datos de una demo nueva)</summary>
+        <p>Incidente simulado confirmado por el agente: activacion de FailureMode a las 15:47:20 UTC; 12 HTTP 500 entre 60 solicitudes de negocio a las 15:48 UTC. Cada error se correlaciono con SimulatedFailureException y SIM_FAILURE_001.</p>
+        <p>El operador desactivo el flag a las 16:21:29 UTC. La prueba posterior de las 16:22 UTC registro 60/60 HTTP 200. La latencia media del conjunto bajo de 1.333,0 a 143,2 ms, y el P95 de 6.226,4 a 270,7 ms.</p>
+        <p>Fuentes consultadas durante el ensayo: AppRequests, AppExceptions y AppTraces de sredemo-mim-law, codigo del middleware y documentacion indexada. No hubo evidencia de clientes reales afectados ni de un despliegue causante. La muestra no demuestra recuperacion sostenida y no se calculo MTTR.</p>
+        <p>Este resumen es un respaldo del ensayo, no una consulta en vivo. El informe original esta en el chat del ensayo. Si lo muestras, explica esta diferencia a la audiencia.</p>
+      </details>
+    </section>
+  </main>
+  <script type="module" src="demo.mjs"></script>
+</body>
+</html>

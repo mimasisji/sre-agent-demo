@@ -2,6 +2,14 @@
 
 End-to-end demo showing how **Azure SRE Agent** reduces MTTR by investigating a live application degradation — from alert to post-mortem — in under 10 minutes.
 
+## Current browser-only demo
+
+Use the [presenter console](https://sredemo-mim-app.azurewebsites.net/demo.html)
+and the [browser-only runbook](docs/browser-demo.md). The console generates bounded
+traffic, UTC-scoped prompts and a recovery test without PowerShell. SRE Agent is
+now operated at [sre.azure.com](https://sre.azure.com), not in Azure Portal.
+Load the admin token before presenting; it stays in tab memory only.
+
 ## What This Demo Shows
 
 | Stage | What happens |

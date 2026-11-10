@@ -1,5 +1,9 @@
 # Demo Script — Azure SRE Agent (10-Minute Executive Demo)
 
+> **Current browser-only workflow:** use [browser-demo.md](browser-demo.md).
+> The previous script below predates the sre.azure.com experience. Its example
+> results and historical incident descriptions are not evidence of a current run.
+
 ---
 
 ## Overview

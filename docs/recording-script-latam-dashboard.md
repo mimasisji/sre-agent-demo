@@ -1,5 +1,11 @@
 # Guion de Grabación — Demo de Azure SRE Agent (Latam / Dashboard)
 
+> **Guion anterior, no usar para la demo del 12 de noviembre de 2026.**
+> Usa [el guion actualizado solo navegador](browser-demo.md) y `/demo.html`.
+> Esta version conserva referencias antiguas al portal, localStorage, resultados
+> y costos que no deben presentarse como hechos actuales. El token del dashboard
+> actual se mantiene solo en memoria, no sobrevive una recarga.
+
 **Duración objetivo:** 10–12 minutos de video final
 **Formato:** Grabación de pantalla + voz en off
 **Audiencia:** Tomadores de decisión ejecutivos y de negocio (CIO, VP, líderes que no viven en la terminal)
